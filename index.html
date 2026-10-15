@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>IslamCraft v1.0</title>
+
+<link rel="stylesheet" href="styles.css">
+
+<!-- ⚡ Supprimé l'import de Three.js ici car main.js gère déjà le module -->
+</head>
+
+<body>
+
+<!-- GAME CANVAS UNIQUE -->
+<canvas id="game"></canvas>
+
+<div id="scores">
+  <div><span id="name1">Joueur 1</span> : <span id="score1">0</span></div>
+  <div><span id="name2">Joueur 2</span> : <span id="score2">0</span></div>
+</div>
+
+<div id="joystick"><div id="stick"></div></div>
+
+<div id="questionBox" class="hidden">
+  <h2 id="questionText"></h2>
+  <div id="answers"></div>
+</div>
+
+<div id="victory" class="hidden">
+  <h1 id="winnerText"></h1>
+  <p>Nouvelle partie en cours...</p>
+</div>
+
+<!-- ⚡ Gardé pour futures fonctionnalités (minimap) -->
+<canvas id="minimap"></canvas>
+
+<div id="lobby">
+  <h2>IslamCraft</h2>
+  <input id="nicknameInput" placeholder="Ton pseudo">
+  <button id="joinBtn">Rejoindre</button>
+  <p id="waiting" class="hidden">En attente d'un joueur...</p>
+</div>
+
+<!-- ⚡ main.js gère imports de Three.js et Socket.io -->
+<!-- Écran d'accueil : créer / rejoindre une salle, puis chargement du jeu -->
+<div id="gate">
+  <div class="gate-card">
+    <h1>IslamCraft</h1>
+    <p>Jeu de quiz à 2 joueurs. Crée une salle et envoie le lien à ton ami.</p>
+    <button id="createRoom">Créer une partie</button>
+    <div class="gate-or">ou</div>
+    <input id="roomInput" placeholder="Code de la salle" maxlength="8" autocapitalize="characters" autocomplete="off">
+    <button id="joinRoom">Rejoindre</button>
+    <p id="gateMsg" class="gate-msg"></p>
+  </div>
+</div>
+<div id="roomBadge" class="hidden"><span id="roomCode"></span> <button id="copyLink">Copier le lien</button></div>
+
+<script>
+(function () {
+  var room = (new URLSearchParams(location.search).get('room') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  var gate = document.getElementById('gate');
+  var lobby = document.getElementById('lobby');
+  function go(code) { location.search = '?room=' + code; }
+  if (room.length >= 3) {
+    window.ISLAMCRAFT_ROOM = room;
+    gate.style.display = 'none';
+    var badge = document.getElementById('roomBadge');
+    badge.classList.remove('hidden');
+    document.getElementById('roomCode').textContent = 'Salle ' + room;
+    document.getElementById('copyLink').onclick = function () {
+      var b = this;
+      (navigator.clipboard ? navigator.clipboard.writeText(location.href) : Promise.reject()).then(function () {
+        b.textContent = 'Lien copié !';
+      }, function () { prompt('Copie ce lien :', location.href); });
+    };
+    var s = document.createElement('script');
+    s.type = 'module'; s.src = 'main.js';
+    document.body.appendChild(s);
+  } else {
+    lobby.style.display = 'none';
+    document.getElementById('createRoom').onclick = function () {
+      var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', c = '';
+      for (var i = 0; i < 5; i++) c += chars[Math.floor(Math.random() * chars.length)];
+      go(c);
+    };
+    document.getElementById('joinRoom').onclick = function () {
+      var c = document.getElementById('roomInput').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (c.length < 3) { document.getElementById('gateMsg').textContent = 'Entre un code valide (3 à 8 caractères).'; return; }
+      go(c);
+    };
+  }
+})();
+</script>
+
+</body>
+</html>
