@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: islamcraft
-    runtime: node
-    rootDir: server
-    buildCommand: npm install
-    startCommand: npm start
-    healthCheckPath: /health
-    plan: free
