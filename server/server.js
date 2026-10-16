@@ -10,7 +10,8 @@ const MAX_PLAYERS = 2;        // joueurs par salle
 const TREASURE_COUNT = 12;
 const WIN_SCORE = 6;
 const MAX_ROOMS = 500;        // protection de la mémoire
-const MIN_MOVE_INTERVAL = 15; // ms : évite la vitesse dépendante du taux de rafraîchissement
+const MIN_MOVE_INTERVAL = 10; // ms : anti-spam des messages de déplacement
+const SPEED = 6.5;            // unités par seconde (comme la v1.0)
 const ROOM_RE = /^[A-Z0-9]{3,8}$/;
 
 const QUESTIONS = [
@@ -113,13 +114,16 @@ function handleMove(room, id, data) {
   const p = room.players[id];
   if (!p || room.gameEnded || !data) return;
   const now = Date.now();
-  if (room.lastMove[id] && now - room.lastMove[id] < MIN_MOVE_INTERVAL) return;
+  // vitesse basée sur le temps réel écoulé : un à-coup réseau ne ralentit plus le joueur
+  let dt = (now - (room.lastMove[id] || now - 30)) / 1000;
+  if (dt < MIN_MOVE_INTERVAL / 1000) return;
+  dt = Math.min(dt, 0.1);
   room.lastMove[id] = now;
 
   const dx = Math.max(-1, Math.min(1, Number(data.dx) || 0));
   const dz = Math.max(-1, Math.min(1, Number(data.dz) || 0));
-  p.x += dx * 0.2;
-  p.z += dz * 0.2;
+  p.x += dx * SPEED * dt;
+  p.z += dz * SPEED * dt;
   p.rot = Number(data.rot) || 0;
   p.moving = !!data.moving;
 
