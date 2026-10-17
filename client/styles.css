@@ -196,3 +196,7 @@ html, body {
 }
 #roomBadge button { margin-left: 8px; border: 0; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
 #roomBadge.hidden { display: none; }
+
+.gate-card button.primary { background: #f0b429; color: #1a1a1a; font-size: 18px; padding: 14px; }
+.gate-card button:disabled { opacity: .7; cursor: wait; }
+.gate-hint { font-size: 13px; opacity: .7; margin: 2px 0 8px; }
