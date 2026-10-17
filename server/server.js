@@ -41,6 +41,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
+app.set('trust proxy', 1);
 app.get('/health', (_req, res) => res.send('ok'));
 app.use(express.static(path.join(__dirname, '../client')));
 
@@ -161,6 +162,49 @@ function checkVictory(room) {
     }
   }
 }
+
+// ---------- Partie rapide (matchmaking) ----------
+// Le 1er joueur crée une salle et attend ; le suivant qui clique est envoyé dans cette salle.
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const waiting = []; // { code, ts }
+const hits = new Map(); // ip -> [timestamps] (anti-spam)
+
+function newQuickCode() {
+  let c;
+  do {
+    c = 'Q';
+    for (let i = 0; i < 5; i++) c += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+  } while (rooms.has(c) || waiting.some((w) => w.code === c));
+  return c;
+}
+
+app.get('/api/quickmatch', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const now = Date.now();
+  const recent = (hits.get(req.ip) || []).filter((t) => now - t < 60000);
+  recent.push(now);
+  hits.set(req.ip, recent);
+  if (recent.length > 20) return res.status(429).json({ error: 'trop de demandes' });
+
+  while (waiting.length) {
+    const w = waiting.shift();
+    const room = rooms.get(w.code);
+    // valide si un joueur attend dans la salle, ou si l'hôte est en train de se connecter (20 s)
+    const valid = room ? Object.keys(room.players).length === 1 : now - w.ts < 20000;
+    if (valid) return res.json({ code: w.code, role: 'join' });
+  }
+  if (rooms.size >= MAX_ROOMS) return res.status(503).json({ error: 'serveur plein' });
+  const code = newQuickCode();
+  waiting.push({ code, ts: now });
+  res.json({ code, role: 'host' });
+});
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, arr] of hits) {
+    const r = arr.filter((t) => now - t < 60000);
+    r.length ? hits.set(ip, r) : hits.delete(ip);
+  }
+}, 60000).unref();
 
 // ---------- Connexions ----------
 io.on('connection', (socket) => {
